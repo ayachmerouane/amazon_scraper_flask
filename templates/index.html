@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Amazon Smart Scraper — ScraperAPI</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding-bottom: 3rem;
+        }
+
+        /* ── NAVBAR ── */
+        nav {
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        nav .logo-area { display: flex; align-items: center; gap: 0.75rem; }
+        nav .logo { font-size: 1.5rem; font-weight: 800; color: #38bdf8; }
+        nav .sub { font-size: 0.85rem; color: #64748b; }
+        
+        .btn-export {
+            background: #0ea5e9;
+            color: white;
+            padding: 0.5rem 1.2rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+        .btn-export:hover { background: #0284c7; }
+
+        /* ── MAIN CONTENT ── */
+        .container { max-width: 1000px; margin: 3rem auto; padding: 0 1.5rem; }
+
+        header { text-align: center; margin-bottom: 3rem; }
+        header h1 { font-size: 2.5rem; margin-bottom: 0.5rem; color: #f8fafc; }
+        header p { color: #94a3b8; }
+
+        /* ── SEARCH BOX ── */
+        .search-box {
+            background: #1e293b;
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            margin-bottom: 2rem;
+        }
+        .input-group { display: flex; gap: 0.75rem; }
+        input {
+            flex: 1;
+            background: #0f172a;
+            border: 1px solid #334155;
+            padding: 0.8rem 1rem;
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input:focus { border-color: #38bdf8; }
+        
+        button {
+            background: #38bdf8;
+            color: #0f172a;
+            border: none;
+            padding: 0 1.5rem;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        button:hover { background: #7dd3fc; transform: translateY(-1px); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* ── LOADER ── */
+        #loader { display: none; text-align: center; margin: 1rem 0; color: #38bdf8; font-weight: 600; }
+        #loader.active { display: block; }
+
+        /* ── ERROR MSG ── */
+        #errorMsg {
+            display: none;
+            background: #7f1d1d;
+            color: #fecaca;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            border-left: 4px solid #ef4444;
+        }
+        #errorMsg.visible { display: block; }
+
+        /* ── RESULT CARD ── */
+        .result-card {
+            display: none;
+            background: white;
+            color: #1e293b;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            margin-bottom: 3rem;
+            animation: slideUp 0.4s ease-out;
+        }
+        .result-card.visible { display: flex; }
+        .result-img { width: 250px; object-fit: contain; background: #f8fafc; padding: 1rem; }
+        .result-content { padding: 1.5rem; flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
+        .res-title { font-size: 1.25rem; font-weight: 700; color: #0f172a; margin-bottom: 0.5rem; }
+        .res-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.5rem; }
+        .res-item { font-size: 0.9rem; }
+        .res-label { color: #64748b; font-size: 0.75rem; text-transform: uppercase; font-weight: 700; display: block; }
+        .res-val { font-weight: 600; color: #334155; }
+        .res-price { font-size: 1.5rem; color: #059669; font-weight: 800; }
+
+        /* ── TABLE ── */
+        .histo-section h2 { margin-bottom: 1rem; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem; }
+        table { width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 8px; overflow: hidden; }
+        th { background: #334155; text-align: left; padding: 0.8rem 1rem; font-size: 0.8rem; color: #94a3b8; text-transform: uppercase; }
+        td { padding: 0.8rem 1rem; border-bottom: 1px solid #334155; font-size: 0.85rem; }
+        tr:last-child td { border: none; }
+        .td-titre { max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #38bdf8; }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="logo-area">
+            <span class="logo">🕷️ SmartScraper</span>
+            <span class="sub">Powered by ScraperAPI</span>
+        </div>
+        <a href="/export" class="btn-export">📥 Exporter CSV</a>
+    </nav>
+
+    <div class="container">
+        <header>
+            <h1>Extraction Amazon</h1>
+            <p>Entrez un nom de produit ou une URL directe pour extraire les données en temps réel.</p>
+        </header>
+
+        <div class="search-box">
+            <div class="input-group">
+                <input type="text" id="urlInput" placeholder="Ex: iPhone 15 Pro, PlayStation 5 ou URL Amazon..." />
+                <button id="btnLancer" onclick="lancer()">Lancer l'extraction</button>
+            </div>
+            <div id="loader">⚙️ ScraperAPI analyse la page (cela peut prendre 10s)...</div>
+        </div>
+
+        <div id="errorMsg"></div>
+
+        <div class="result-card" id="resultCard">
+            <img class="result-img" id="resImg" src="" alt="Produit">
+            <div class="result-content">
+                <div id="resMarque" style="font-size: 0.8rem; color: #0ea5e9; font-weight: 700;">MARQUE</div>
+                <div class="res-title" id="resTitre">Titre du produit</div>
+                <div class="res-price" id="resPrix">0.00 €</div>
+                <div class="res-grid">
+                    <div class="res-item">
+                        <span class="res-label">Note</span>
+                        <span class="res-val" id="resNote">N/A</span>
+                    </div>
+                    <div class="res-item">
+                        <span class="res-label">Avis</span>
+                        <span class="res-val" id="resAvis">0 avis</span>
+                    </div>
+                    <div class="res-item">
+                        <span class="res-label">Disponibilité</span>
+                        <span class="res-val" id="resDispo">Vérification...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="histo-section">
+            <h2>📋 Historique des recherches</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Produit</th>
+                        <th>Prix</th>
+                        <th>Note</th>
+                    </tr>
+                </thead>
+                <tbody id="histoBody">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Permettre la touche Entrée
+        document.getElementById('urlInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') lancer();
+        });
+
+        async function lancer() {
+            const input = document.getElementById("urlInput");
+            const btn = document.getElementById("btnLancer");
+            const loader = document.getElementById("loader");
+            const error = document.getElementById("errorMsg");
+            const card = document.getElementById("resultCard");
+
+            const val = input.value.trim();
+            if (!val) return;
+
+            // Reset UI
+            error.classList.remove("visible");
+            card.classList.remove("visible");
+            btn.disabled = true;
+            loader.classList.add("active");
+
+            try {
+                const response = await fetch("/scraper", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ url: val })
+                });
+
+                const data = await response.json();
+
+                if (data.erreur) {
+                    showError(data.erreur);
+                } else {
+                    // Remplir la carte
+                    document.getElementById("resTitre").textContent = data.titre;
+                    document.getElementById("resPrix").textContent = data.prix;
+                    document.getElementById("resNote").textContent = data.note;
+                    document.getElementById("resAvis").textContent = data.nb_avis;
+                    document.getElementById("resMarque").textContent = data.marque;
+                    document.getElementById("resDispo").textContent = data.disponibilite;
+                    document.getElementById("resImg").src = data.image || "https://via.placeholder.com/250?text=Pas+d'image";
+                    
+                    card.classList.add("visible");
+                    rafraichirHisto();
+                    input.value = ""; // Vider le champ
+                }
+            } catch (e) {
+                showError("Erreur de connexion au serveur.");
+            } finally {
+                btn.disabled = false;
+                loader.classList.remove("active");
+            }
+        }
+
+        function showError(msg) {
+            const el = document.getElementById("errorMsg");
+            el.textContent = "❌ " + msg;
+            el.classList.add("visible");
+        }
+
+        async function rafraichirHisto() {
+            const res = await fetch("/historique");
+            const rows = await res.json();
+            const tbody = document.getElementById("histoBody");
+
+            // On affiche les 10 derniers du plus récent au plus ancien
+            tbody.innerHTML = rows.reverse().slice(0, 10).map(r => `
+                <tr>
+                    <td>${r.date}</td>
+                    <td class="td-titre" title="${r.titre}">${r.titre}</td>
+                    <td style="font-weight:bold; color:#10b981">${r.prix}</td>
+                    <td>${r.note}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Charger l'historique au démarrage
+        window.onload = rafraichirHisto;
+    </script>
+</body>
+</html>

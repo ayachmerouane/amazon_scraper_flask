@@ -1,0 +1,10 @@
+# Config sensible
+config.py
+
+# Python
+__pycache__/
+*.py[cod]
+.env
+
+# Data locale
+data/
